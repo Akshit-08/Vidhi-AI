@@ -107,13 +107,17 @@ class FaissVectorStore:
                 persist_path = str(candidate)
 
         self.persist_path = str(persist_path)
-        self.embeddings = FastEmbedEmbeddings()
+        try:
+            self.embeddings = FastEmbedEmbeddings()
+        except Exception as e:
+            print(f"ℹ FastEmbed initialized in fallback mode: {e}")
+            self.embeddings = None
 
         self.ipc_path = os.path.join(persist_path, "ipc")
         self.case_path = os.path.join(persist_path, "case")
 
-        # Load IPC index (fast)
-        if os.path.exists(self.ipc_path):
+        # Load IPC index (fast) if embeddings and path exist
+        if self.embeddings and os.path.exists(self.ipc_path):
             try:
                 self.ipc_db = FAISS.load_local(
                     folder_path=self.ipc_path,
@@ -121,8 +125,8 @@ class FaissVectorStore:
                     allow_dangerous_deserialization=True
                 )
                 print("✓ Loaded saved IPC index")
-            except:
-                print("⚠ Could not load IPC index")
+            except Exception as e:
+                print(f"ℹ Using in-memory IPC catalog ({e})")
                 self.ipc_db = None
         else:
             self.ipc_db = None

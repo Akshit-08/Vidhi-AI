@@ -1,12 +1,25 @@
 import os
+import asyncio
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Ensure environment variables are loaded
+load_dotenv()
+project_dir = Path(__file__).resolve().parent
+for candidate in (project_dir / ".env", project_dir.parent / ".env"):
+    if candidate.exists():
+        load_dotenv(candidate)
+
 import uvicorn
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+
 from src.graphs.graph_builder import GraphBuilder
 from src.llms.groqllm import GroqLLM
 from src.vectorstore.faiss_store import FaissVectorStore
-from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI()
+app = FastAPI(title="Vidhi AI Legal Engine")
 
 
 # Add CORS middleware
@@ -38,52 +51,74 @@ def get_graph():
     return _graph
 
 
-@app.get("/health")
-async def health():
-    groq_configured = bool(os.getenv("GROQ_API_KEY"))
-    return {"status": "ok", "groq_configured": groq_configured}
+@app.get("/")
+def root():
+    return {
+        "service": "Vidhi AI Legal Backend",
+        "status": "online",
+        "docs": "/docs",
+        "health": "/health",
+    }
 
+
+@app.get("/health")
+def health():
+    groq_configured = bool(os.getenv("GROQ_API_KEY") or os.getenv("GROQ_BACKUP_API_KEY"))
+    return {
+        "status": "ok",
+        "groq_configured": groq_configured,
+        "engine": "FastAPI + LangGraph",
+    }
 
 
 @app.post("/judgement")
 async def give_judgement(request: Request):
-    data = await request.json()
-    case_text = data.get("case_text", "")
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"error": "Invalid JSON body"})
 
+    case_text = data.get("case_text", "").strip()
     if not case_text:
-        return {"error": "case_text is required"}
+        return JSONResponse(status_code=400, content={"error": "case_text is required"})
 
     state = {"raw_case_file": case_text}
 
     try:
         current_graph = get_graph()
-        result = current_graph.invoke(state)
+        # Offload synchronous graph execution to threadpool so event loop never hangs
+        result = await asyncio.to_thread(current_graph.invoke, state)
     except Exception as exc:
         error = str(exc)
-        if "Request too large" in error or "rate_limit" in error:
-            return {
-                "error": "Groq free-tier token limit reached",
-                "detail": "Wait one minute, shorten the case text, or upgrade Groq to Dev Tier.",
-            }
-        return {
-            "error": "Courtroom analysis failed",
-            "detail": error,
-        }
+        if "Request too large" in error or "rate_limit" in error or "429" in error:
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "error": "Groq free-tier token limit reached",
+                    "detail": "Wait one minute, shorten the case text, or upgrade Groq to Dev Tier.",
+                },
+            )
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "Courtroom analysis failed",
+                "detail": error,
+            },
+        )
 
-    # If LangGraph HITL interrupt (rare)
+    # Check for HITL interrupt state
     if "__interrupt__" in result:
         partial = current_graph.get_state().value
         return {
             "prosecution": partial.get("prosecution_argument"),
             "defense": partial.get("defense_argument"),
-            "verdict": partial.get("final_verdict")
+            "verdict": partial.get("final_verdict"),
         }
 
-    # Normal output
     return {
         "prosecution": result.get("prosecution_argument"),
         "defense": result.get("defense_argument"),
-        "verdict": result.get("final_verdict")
+        "verdict": result.get("final_verdict"),
     }
 
 

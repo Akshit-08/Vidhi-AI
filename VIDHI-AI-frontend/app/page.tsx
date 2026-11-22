@@ -62,8 +62,8 @@ const courtFacts = [
 
 const phaseMessages: Record<PhaseName, string> = {
   analyzing: "Case Analysis in progress...",
-  prosecuting: "Prosecution Agent preparing arguments...",
-  defending: "Defense Agent preparing counterarguments...",
+  prosecuting: "Prosecution Agent in progress...",
+  defending: "Defense Agent in progress...",
   judging: "Judge Processing in progress...",
   complete: "Analysis complete",
 };
@@ -207,6 +207,24 @@ export default function Page() {
         throw new Error("The backend returned an invalid response.");
       }
 
+      const resObj = data as {
+        error?: string;
+        detail?: string;
+        prosecution?: string;
+        defense?: string;
+        verdict?: string;
+      };
+
+      if (resObj.error) {
+        throw new Error(
+          resObj.detail ? `${resObj.error}: ${resObj.detail}` : resObj.error
+        );
+      }
+
+      if (!resObj.prosecution && !resObj.defense && !resObj.verdict) {
+        throw new Error("The backend produced no courtroom content. Please verify that the Railway backend service has GROQ_API_KEY set.");
+      }
+
       setVerdict(data as Verdict);
       setProcessingPhase("complete");
 
@@ -268,20 +286,20 @@ export default function Page() {
           >
             {/* Center Content Section */}
             <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 max-w-4xl mx-auto my-auto py-12">
-              <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold text-[#6b1d1d] tracking-tight leading-tight">
-                {courtFacts[currentFact].title}
+              <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold text-[#781b1b] tracking-tight leading-tight">
+                AI-Assisted Analysis
               </h1>
 
-              <p className="mt-5 text-lg sm:text-2xl font-bold text-[#6b1d1d] max-w-2xl leading-snug">
-                {courtFacts[currentFact].fact}
+              <p className="mt-5 text-lg sm:text-2xl font-bold text-[#781b1b] max-w-2xl leading-snug">
+                AI can organize and summarize case information
               </p>
 
-              <p className="mt-3 text-sm sm:text-base font-semibold text-[#6b1d1d]/90 max-w-xl">
-                {courtFacts[currentFact].impact}
+              <p className="mt-3 text-sm sm:text-base font-semibold text-[#781b1b]/80 max-w-xl">
+                AI output is informational and is not a substitute for a court.
               </p>
 
-              <div className="mt-8 flex items-center justify-center gap-2.5 text-xs sm:text-sm font-medium text-[#7c5b52]">
-                <LoaderCircle className="h-4 w-4 animate-spin text-[#6b1d1d]" />
+              <div className="mt-8 flex items-center justify-center gap-2.5 text-xs sm:text-sm font-medium text-[#7a4e3b]">
+                <LoaderCircle className="h-4 w-4 animate-spin text-[#781b1b]" />
                 <span>{phaseMessages[processingPhase] || "Case Analysis in progress..."}</span>
               </div>
             </div>
