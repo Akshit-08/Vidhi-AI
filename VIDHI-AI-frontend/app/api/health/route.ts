@@ -5,7 +5,9 @@ export async function GET() {
     const backendBase =
       process.env.BACKEND_URL ||
       process.env.NEXT_PUBLIC_API_URL ||
-      "http://localhost:8000";
+      (process.env.NODE_ENV === "production"
+        ? "https://vidhi-ai-backend-production.up.railway.app"
+        : "http://localhost:8000");
 
     const targetUrl = new URL("health", backendBase.replace(/\/$/, "") + "/");
 

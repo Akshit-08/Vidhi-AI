@@ -1,0 +1,4 @@
+VIDHI-AI-backend/
+.env*
+*.faiss
+*.pkl

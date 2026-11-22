@@ -6,11 +6,13 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    // BACKEND_URL is injected by Vercel services binding; fall back to local dev URL
+    // Point to Railway backend by default in production
     const backendBase =
       process.env.BACKEND_URL ||
       process.env.NEXT_PUBLIC_API_URL ||
-      "http://localhost:8000";
+      (process.env.NODE_ENV === "production"
+        ? "https://vidhi-ai-backend-production.up.railway.app"
+        : "http://localhost:8000");
 
     const targetUrl = new URL("judgement", backendBase.replace(/\/$/, "") + "/");
 
