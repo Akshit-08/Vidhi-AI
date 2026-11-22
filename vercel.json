@@ -1,7 +1,0 @@
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs",
-  "buildCommand": "cd VIDHI-AI-frontend && npm run build",
-  "outputDirectory": "VIDHI-AI-frontend/.next",
-  "installCommand": "cd VIDHI-AI-frontend && npm install"
-}
