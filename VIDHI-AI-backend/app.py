@@ -1,3 +1,4 @@
+import os
 import uvicorn
 from fastapi import FastAPI, Request
 from src.graphs.graph_builder import GraphBuilder
@@ -23,18 +24,23 @@ app.add_middleware(
 
 
 # ----------------------
-#  LOAD ONCE AT STARTUP
+#  LAZY LOAD ON REQUEST
 # ----------------------
-llm = GroqLLM()
-vector_store = FaissVectorStore("faiss_index")
+_graph = None
 
-# Build LangGraph agent ONCE – super fast on requests
-graph = GraphBuilder(llm, vector_store).build()
+def get_graph():
+    global _graph
+    if _graph is None:
+        llm = GroqLLM()
+        vector_store = FaissVectorStore("faiss_index")
+        _graph = GraphBuilder(llm, vector_store).build()
+    return _graph
 
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    groq_configured = bool(os.getenv("GROQ_API_KEY"))
+    return {"status": "ok", "groq_configured": groq_configured}
 
 
 
@@ -49,7 +55,8 @@ async def give_judgement(request: Request):
     state = {"raw_case_file": case_text}
 
     try:
-        result = graph.invoke(state)
+        current_graph = get_graph()
+        result = current_graph.invoke(state)
     except Exception as exc:
         error = str(exc)
         if "Request too large" in error or "rate_limit" in error:
@@ -57,11 +64,14 @@ async def give_judgement(request: Request):
                 "error": "Groq free-tier token limit reached",
                 "detail": "Wait one minute, shorten the case text, or upgrade Groq to Dev Tier.",
             }
-        raise
+        return {
+            "error": "Courtroom analysis failed",
+            "detail": error,
+        }
 
     # If LangGraph HITL interrupt (rare)
     if "__interrupt__" in result:
-        partial = graph.get_state().value
+        partial = current_graph.get_state().value
         return {
             "prosecution": partial.get("prosecution_argument"),
             "defense": partial.get("defense_argument"),

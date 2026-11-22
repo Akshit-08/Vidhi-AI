@@ -138,7 +138,23 @@ export default function Page() {
       });
 
       if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}.`);
+        let errorMsg = `Request failed with status ${response.status}.`;
+        try {
+          const errData = await response.json();
+          if (errData && typeof errData === "object") {
+            const dataObj = errData as { error?: string; detail?: string };
+            if (dataObj.error && dataObj.detail) {
+              errorMsg = `${dataObj.error}: ${dataObj.detail}`;
+            } else if (dataObj.error) {
+              errorMsg = dataObj.error;
+            } else if (dataObj.detail) {
+              errorMsg = dataObj.detail;
+            }
+          }
+        } catch {
+          // ignore parsing error
+        }
+        throw new Error(errorMsg);
       }
 
       const data: unknown = await response.json();

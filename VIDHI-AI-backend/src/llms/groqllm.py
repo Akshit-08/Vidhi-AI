@@ -31,7 +31,9 @@ class GroqLLM:
 
         self.api_key = (os.getenv("GROQ_API_KEY") or "").strip()
         if not self.api_key or self.api_key == "your_groq_api_key_here":
-            raise ValueError("GROQ_API_KEY is missing from environment variables.")
+            raise ValueError(
+                "GROQ_API_KEY is not configured in Vercel environment variables. Please add GROQ_API_KEY in Vercel Project Settings > Environment Variables."
+            )
 
         if ChatGroq is None:
             raise ImportError(

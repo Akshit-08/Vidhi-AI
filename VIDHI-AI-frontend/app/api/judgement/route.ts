@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -18,7 +20,21 @@ export async function POST(request: Request) {
       body: JSON.stringify(body),
     });
 
-    const data = await response.json();
+    const text = await response.text();
+    let data: unknown;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      return NextResponse.json(
+        {
+          error:
+            "Backend returned an unparseable response. Please ensure GROQ_API_KEY is configured in Vercel Project Settings.",
+          detail: text.slice(0, 300),
+        },
+        { status: response.status || 500 }
+      );
+    }
+
     return NextResponse.json(data, { status: response.status });
   } catch (err: unknown) {
     const message =

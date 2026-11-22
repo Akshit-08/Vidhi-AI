@@ -10,11 +10,25 @@ export async function GET() {
     const targetUrl = new URL("health", backendBase.replace(/\/$/, "") + "/");
 
     const response = await fetch(targetUrl);
-    const data = await response.json();
+    const text = await response.text();
+    let data: unknown;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      return NextResponse.json(
+        {
+          status: "error",
+          error: "Backend returned an unexpected response",
+          detail: text.slice(0, 300),
+        },
+        { status: response.status || 500 }
+      );
+    }
+
     return NextResponse.json(data, { status: response.status });
   } catch (err: unknown) {
     const message =
       err instanceof Error ? err.message : "Failed to communicate with backend service.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ status: "error", error: message }, { status: 500 });
   }
 }

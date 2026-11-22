@@ -84,6 +84,7 @@
 
 import os
 import shutil
+from pathlib import Path
 
 # Ensure fastembed caches models in writable /tmp directory on serverless runtimes
 os.environ.setdefault("FASTEMBED_CACHE_PATH", "/tmp/fastembed_cache")
@@ -99,7 +100,13 @@ class FaissVectorStore:
     """
 
     def __init__(self, persist_path="faiss_index"):
-        self.persist_path = persist_path
+        if not os.path.isabs(persist_path):
+            base_dir = Path(__file__).resolve().parents[2]
+            candidate = base_dir / persist_path
+            if candidate.exists():
+                persist_path = str(candidate)
+
+        self.persist_path = str(persist_path)
         self.embeddings = FastEmbedEmbeddings()
 
         self.ipc_path = os.path.join(persist_path, "ipc")
