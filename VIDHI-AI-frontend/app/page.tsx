@@ -18,8 +18,10 @@ import {
   Minimize2,
   Columns,
   ListOrdered,
+  ChevronDown,
 } from "lucide-react";
 import LegalContentRenderer from "./components/LegalContentRenderer";
+import LadyJusticeWatermark from "./components/LadyJusticeWatermark";
 
 type Verdict = {
   prosecution?: string;
@@ -38,6 +40,11 @@ const phases: { name: string; key: PhaseName }[] = [
 
 const courtFacts = [
   {
+    title: "AI-Assisted Analysis",
+    fact: "AI can organize and summarize case information.",
+    impact: "AI output is informational and is not a substitute for a court.",
+  },
+  {
     title: "Justice Delayed is Justice Denied",
     fact: "Millions of cases are pending in Indian courts.",
     impact: "Delays can affect individuals, families, and businesses.",
@@ -52,22 +59,20 @@ const courtFacts = [
     fact: "Legal processes can be difficult to navigate.",
     impact: "Clear information can help people better understand a case.",
   },
-  {
-    title: "AI-Assisted Analysis",
-    fact: "AI can organize and summarize case information.",
-    impact: "AI output is informational and must not replace legal advice or a court.",
-  },
 ];
 
 const phaseMessages: Record<PhaseName, string> = {
-  analyzing: "🔍 Analyzing case details...",
-  prosecuting: "⚖️ Prosecution agent preparing arguments...",
-  defending: "🛡️ Defense agent preparing counterarguments...",
-  judging: "👨‍⚖️ Judge agent analyzing the arguments...",
-  complete: "✓ Analysis complete",
+  analyzing: "Case Analysis in progress...",
+  prosecuting: "Prosecution Agent preparing arguments...",
+  defending: "Defense Agent preparing counterarguments...",
+  judging: "Judge Processing in progress...",
+  complete: "Analysis complete",
 };
 
-const SAMPLE_CASE = `Case: State v. Rahul Sharma
+const SAMPLE_CASES = [
+  {
+    name: "Sample 1: Theft & Assault (Jewellery Store)",
+    text: `Case: State v. Rahul Sharma
 Case Details:
 - Accused: Rahul Sharma, 32
 - Victim: Amit Verma, 28
@@ -87,7 +92,35 @@ Recovered Evidence & Statements:
 - Medical report confirming concussion and laceration injuries to the guard.
 - Jewellery worth ₹2,00,000 recovered from Rahul Sharma's residence.
 - CCTV camera outside the adjoining bank shows an individual matching Rahul's physical build entering the alley at 11:15 PM.
-- Fingerprints lifted from the shattered showcase match the accused.`;
+- Fingerprints lifted from the shattered showcase match the accused.`,
+  },
+  {
+    name: "Sample 2: Kidnapping & Extortion (Farmhouse)",
+    text: `Case: State of Maharashtra v. Karan Malhotra
+Case Details:
+- Accused: Karan Malhotra, 34
+- Victim: Ananya Kapoor, 29 (Director of a private real estate firm)
+- Location: Mumbai / Pune Highway, Maharashtra
+- Date of Incident: 18 October 2026
+- Incident: Alleged kidnapping for ransom, extortion, and wrongful confinement.
+
+Charges:
+1. Kidnapping for ransom (IPC 364A).
+2. Extortion through threatening SMS communications (IPC 384).
+3. Wrongful confinement at an abandoned farmhouse (IPC 342).
+4. Criminal intimidation with threat to cause grievous harm (IPC 506).
+
+Recovered Evidence & Statements:
+- Ananya Kapoor disappeared for approximately 36 hours before being rescued from an abandoned farmhouse.
+- Victim suffered minor physical injuries and trauma.
+- Two unidentified individuals were reportedly seen near the farmhouse.
+- A ransom demand of ₹50,00,000 was sent via SMS to victim's family.
+- Prepaid SIM card used for the ransom messages was recovered; vendor identified Karan Malhotra as purchaser.
+- Mobile tower CDR records place Karan's phone near the farmhouse during confinement.
+- Farmhouse belongs to a third party who claims it was rented out informally without written lease.
+- Commercial records confirm a bitter prior financial disagreement between Karan and Ananya over real estate commission.`,
+  },
+];
 
 export default function Page() {
   const [caseInput, setCaseInput] = useState("");
@@ -100,18 +133,30 @@ export default function Page() {
   const [activeTab, setActiveTab] = useState<"side-by-side" | "prosecution" | "defense" | "sequential">("side-by-side");
   const [isExpanded, setIsExpanded] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [sampleMenuOpen, setSampleMenuOpen] = useState(false);
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!loading) return;
 
-    const interval = window.setInterval(() => {
+    // Progress through courtroom phases realistically during inference
+    const phaseInterval = window.setInterval(() => {
+      setCurrentPhase((prev) => {
+        const next = (prev + 1) % phases.length;
+        setProcessingPhase(phases[next].key);
+        return next;
+      });
+    }, 5500);
+
+    const factInterval = window.setInterval(() => {
       setCurrentFact((current) => (current + 1) % courtFacts.length);
-      setCurrentPhase((current) => (current + 1) % phases.length);
     }, 4500);
 
-    return () => window.clearInterval(interval);
+    return () => {
+      window.clearInterval(phaseInterval);
+      window.clearInterval(factInterval);
+    };
   }, [loading]);
 
   async function fetchJudgement() {
@@ -216,49 +261,67 @@ export default function Page() {
 
       {/* Main Container */}
       <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 py-10 space-y-9">
-        {/* Loading Modal / Processing Stepper */}
+        {/* Full-Screen Courtroom Immersion Loading View (Matching Reference Image 1) */}
         {loading && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-amber-950/70 backdrop-blur-xs p-4 sm:p-6 animate-fade-in">
-            <div className="w-full max-w-4xl rounded-2xl border-2 border-amber-300 bg-white p-8 text-center shadow-2xl relative overflow-hidden">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 text-amber-800 mb-5 border border-amber-300">
-                <Gavel className="h-7 w-7 animate-bounce" />
-              </div>
+          <div className="fixed inset-0 z-50 flex flex-col justify-between bg-[#fbf7ee] text-[#6b1d1d] overflow-hidden select-none animate-fade-in">
+            {/* Classical Lady Justice Watermark Illustration on the Left */}
+            <div className="absolute left-0 bottom-0 top-0 w-[420px] max-w-[42vw] h-full pointer-events-none select-none z-0 flex items-end">
+              <LadyJusticeWatermark className="w-full h-full max-h-[92vh] object-contain object-left-bottom" />
+            </div>
 
-              <h2 className="text-2xl sm:text-3xl font-bold text-amber-950">
+            {/* Vintage Calligraphy Watermark in Top Right */}
+            <div
+              className="absolute top-6 sm:top-10 right-6 sm:right-16 pointer-events-none select-none z-0 text-[#782323]/12 text-7xl sm:text-8xl md:text-9xl font-serif italic tracking-widest"
+              style={{ fontFamily: 'Georgia, "Brush Script MT", cursive' }}
+            >
+              ViDhi AI
+            </div>
+
+            {/* Center Content Section */}
+            <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 max-w-4xl mx-auto my-auto py-12">
+              <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold text-[#6b1d1d] tracking-tight leading-tight">
                 {courtFacts[currentFact].title}
-              </h2>
-              <p className="mt-3 text-lg font-semibold text-amber-800">
+              </h1>
+
+              <p className="mt-5 text-lg sm:text-2xl font-bold text-[#6b1d1d] max-w-2xl leading-snug">
                 {courtFacts[currentFact].fact}
               </p>
-              <p className="mt-2 text-sm text-gray-600 max-w-xl mx-auto">
+
+              <p className="mt-3 text-sm sm:text-base font-semibold text-[#6b1d1d]/90 max-w-xl">
                 {courtFacts[currentFact].impact}
               </p>
 
-              {/* Progress Steps */}
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-                {phases.map((phase, index) => (
-                  <div className="flex items-center gap-2" key={phase.key}>
-                    <div
-                      className={`rounded-lg px-4 py-2 text-xs sm:text-sm font-semibold transition-all ${
-                        index === currentPhase
-                          ? "bg-amber-900 text-white shadow-md ring-2 ring-amber-500/50"
-                          : index < currentPhase
-                          ? "bg-emerald-700 text-white"
-                          : "bg-amber-100/90 text-amber-900"
-                      }`}
-                    >
-                      {phase.name}
-                    </div>
-                    {index < phases.length - 1 && (
-                      <span className="text-amber-700 font-bold hidden sm:inline">→</span>
-                    )}
-                  </div>
-                ))}
+              <div className="mt-8 flex items-center justify-center gap-2.5 text-xs sm:text-sm font-medium text-[#7c5b52]">
+                <LoaderCircle className="h-4 w-4 animate-spin text-[#6b1d1d]" />
+                <span>{phaseMessages[processingPhase] || "Judge Processing in progress..."}</span>
               </div>
+            </div>
 
-              <div className="mt-7 flex items-center justify-center gap-2.5 text-sm font-medium text-amber-900">
-                <LoaderCircle className="h-4 w-4 animate-spin text-amber-700" />
-                <span>{phaseMessages[processingPhase]}</span>
+            {/* Bottom Stepper Pills Track */}
+            <div className="relative z-10 pb-8 sm:pb-12 pt-4 px-4 w-full">
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 max-w-4xl mx-auto">
+                {phases.map((phase, idx) => {
+                  const isCompleted = idx < currentPhase;
+                  const isActive = idx === currentPhase;
+                  return (
+                    <div key={phase.key} className="flex items-center gap-2 sm:gap-4">
+                      <div
+                        className={`px-4 sm:px-6 py-2.5 rounded-lg text-xs sm:text-sm font-bold tracking-wider uppercase transition-all shadow-xs ${
+                          isCompleted
+                            ? "bg-[#0d8a43] text-white"
+                            : isActive
+                            ? "bg-[#6b0d0d] text-white shadow-md ring-2 ring-red-950/20"
+                            : "bg-[#eedec5] text-[#7a4e3b]"
+                        }`}
+                      >
+                        {phase.name}
+                      </div>
+                      {idx < phases.length - 1 && (
+                        <span className="text-[#6b1d1d] font-bold text-base sm:text-lg">→</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -277,16 +340,40 @@ export default function Page() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setCaseInput(SAMPLE_CASE)}
-                disabled={loading}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50/90 px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition disabled:opacity-50"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-amber-700" />
-                Load Sample Case
-              </button>
+            <div className="relative flex items-center gap-2">
+              {/* Sample Case Selector Dropdown */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setSampleMenuOpen((prev) => !prev)}
+                  disabled={loading}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50/90 px-3.5 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition disabled:opacity-50 shadow-xs"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-amber-700" />
+                  Load Sample Case
+                  <ChevronDown className="h-3.5 w-3.5 text-amber-700 ml-0.5" />
+                </button>
+
+                {sampleMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-72 rounded-xl border border-amber-200 bg-white p-1.5 shadow-2xl z-30 animate-fade-in">
+                    {SAMPLE_CASES.map((sample, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setCaseInput(sample.text);
+                          setSampleMenuOpen(false);
+                        }}
+                        className="w-full text-left rounded-lg px-3 py-2 text-xs font-medium text-gray-800 hover:bg-amber-100/70 hover:text-amber-950 transition flex flex-col gap-0.5"
+                      >
+                        <span className="font-bold text-amber-900">{sample.name}</span>
+                        <span className="text-[11px] text-gray-500 truncate">{sample.text.slice(0, 50)}...</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {caseInput && (
                 <button
                   type="button"

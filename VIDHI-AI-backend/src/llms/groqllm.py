@@ -9,7 +9,7 @@ except ImportError:
     ChatGroq = None  # type: ignore
 
 try:
-    from groq import BadRequestError, RateLimitError
+    from groq import BadRequestError, RateLimitError, APIConnectionError
 except ImportError:
     class BadRequestError(Exception):  # type: ignore
         pass
@@ -17,9 +17,13 @@ except ImportError:
     class RateLimitError(Exception):  # type: ignore
         pass
 
+    class APIConnectionError(Exception):  # type: ignore
+        pass
+
+
 class GroqLLM:
     """
-    Wrapper so nodes can call llm.invoke(prompt)
+    Wrapper so nodes can call llm.invoke(prompt) with automatic retry and error handling.
     """
 
     def __init__(self):
@@ -45,25 +49,27 @@ class GroqLLM:
         self.llm = ChatGroq(
             api_key=self.api_key,
             model=model_name,
-            max_tokens=int(os.getenv("GROQ_MAX_TOKENS", "1200"))
+            max_tokens=int(os.getenv("GROQ_MAX_TOKENS", "1500")),
+            request_timeout=45.0,
         )
 
     def invoke(self, prompt: str):
         """
-        Make Groq behave like other LangChain LLMs.
+        Invoke Groq with retry logic.
         """
+        last_exc = None
         for attempt in range(3):
             try:
                 return self.llm.invoke(prompt)
-            except (RateLimitError, BadRequestError) as exc:
-                if attempt == 2:
+            except Exception as exc:
+                last_exc = exc
+                err_str = str(exc)
+                if "Request too large" in err_str:
                     raise
-                if "Request too large" in str(exc):
-                    raise
-                time.sleep(20)
+                if attempt < 2:
+                    time.sleep(2.0 * (attempt + 1))
+                else:
+                    raise last_exc
 
     def get_llm(self):
-        """
-        Still keep this method for compatibility.
-        """
         return self.llm
