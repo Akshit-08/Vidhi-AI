@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "vidhi-ai-frontend": {
+      "root": "VIDHI-AI-frontend",
+      "framework": "nextjs"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "vidhi-ai-frontend"
+      }
+    }
+  ]
+}
