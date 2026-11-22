@@ -84,6 +84,10 @@
 
 import os
 import shutil
+
+# Ensure fastembed caches models in writable /tmp directory on serverless runtimes
+os.environ.setdefault("FASTEMBED_CACHE_PATH", "/tmp/fastembed_cache")
+
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import FastEmbedEmbeddings
 
@@ -149,10 +153,13 @@ class FaissVectorStore:
             metadatas=metadatas,
         )
 
-        shutil.rmtree(self.case_path, ignore_errors=True)
-        os.makedirs(self.case_path, exist_ok=True)
-        self.case_db.save_local(self.case_path)
-        print("✓ Case index saved")
+        try:
+            shutil.rmtree(self.case_path, ignore_errors=True)
+            os.makedirs(self.case_path, exist_ok=True)
+            self.case_db.save_local(self.case_path)
+            print("✓ Case index saved")
+        except Exception as e:
+            print(f"ℹ In-memory case index retained ({e})")
 
     # ---- COMBINED SEARCH ----
     def similarity_search(self, query, k=10):

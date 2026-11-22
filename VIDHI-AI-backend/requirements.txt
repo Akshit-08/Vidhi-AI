@@ -1,35 +1,12 @@
-# langchain
-# langgraph
-# langchain_community
-# langchain_core
-# langchain_groq
-# fastapi
-# uvicorn
-# watchdog
-# langgraph-cli[inmem]
-
-langchain
+fastapi
+uvicorn
+python-dotenv
+pydantic
+groq
 langchain-core
 langchain-community
+langchain-groq
 langchain-text-splitters
 langgraph
 faiss-cpu
-sentence-transformers
-transformers
-huggingface-hub
-langchain-groq
-pydantic
-python-dotenv
 fastembed
-groq
-tiktoken
-
-numpy
-scikit-learn
-
-uvicorn
-fastapi
-
-# Optional but recommended
-rich
-
