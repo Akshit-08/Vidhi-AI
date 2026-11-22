@@ -1,0 +1,33 @@
+# Environment files (CRITICAL: Never commit secrets)
+.env
+.env.*
+.env.local
+!.env.example
+
+# Node dependencies & builds
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+env/
+venv/
+ENV/
+
+# System and IDE
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
