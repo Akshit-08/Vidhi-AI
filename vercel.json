@@ -1,0 +1,29 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "vidhi-ai-backend": {
+      "root": "VIDHI-AI-backend",
+      "framework": "fastapi"
+    },
+    "vidhi-ai-frontend": {
+      "root": "VIDHI-AI-frontend",
+      "framework": "nextjs",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "vidhi-ai-backend",
+          "format": "url",
+          "env": "BACKEND_URL"
+        }
+      ]
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "vidhi-ai-frontend"
+      }
+    }
+  ]
+}

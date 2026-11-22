@@ -120,7 +120,9 @@ export default function Page() {
       return;
     }
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const endpoint = process.env.NEXT_PUBLIC_API_URL
+      ? `${process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "")}/judgement`
+      : "/api/judgement";
 
     setLoading(true);
     setError(null);
@@ -129,7 +131,7 @@ export default function Page() {
     setProcessingPhase("analyzing");
 
     try {
-      const response = await fetch(`${apiUrl.replace(/\/$/, "")}/judgement`, {
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ case_text: caseInput }),
