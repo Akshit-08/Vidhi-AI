@@ -21,7 +21,6 @@ import {
   ChevronDown,
 } from "lucide-react";
 import LegalContentRenderer from "./components/LegalContentRenderer";
-import LadyJusticeWatermark from "./components/LadyJusticeWatermark";
 
 type Verdict = {
   prosecution?: string;
@@ -261,22 +260,12 @@ export default function Page() {
 
       {/* Main Container */}
       <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 py-10 space-y-9">
-        {/* Full-Screen Courtroom Immersion Loading View (Matching Reference Image 1) */}
+        {/* Full-Screen Courtroom Immersion Loading View with Custom Background */}
         {loading && (
-          <div className="fixed inset-0 z-50 flex flex-col justify-between bg-[#fbf7ee] text-[#6b1d1d] overflow-hidden select-none animate-fade-in">
-            {/* Classical Lady Justice Watermark Illustration on the Left */}
-            <div className="absolute left-0 bottom-0 top-0 w-[420px] max-w-[42vw] h-full pointer-events-none select-none z-0 flex items-end">
-              <LadyJusticeWatermark className="w-full h-full max-h-[92vh] object-contain object-left-bottom" />
-            </div>
-
-            {/* Vintage Calligraphy Watermark in Top Right */}
-            <div
-              className="absolute top-6 sm:top-10 right-6 sm:right-16 pointer-events-none select-none z-0 text-[#782323]/12 text-7xl sm:text-8xl md:text-9xl font-serif italic tracking-widest"
-              style={{ fontFamily: 'Georgia, "Brush Script MT", cursive' }}
-            >
-              ViDhi AI
-            </div>
-
+          <div
+            className="fixed inset-0 z-50 flex flex-col justify-between bg-[#fbf7ee] text-[#6b1d1d] overflow-hidden select-none animate-fade-in bg-cover bg-left-bottom bg-no-repeat"
+            style={{ backgroundImage: "url('/courtroom-bg.jpg')" }}
+          >
             {/* Center Content Section */}
             <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 max-w-4xl mx-auto my-auto py-12">
               <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold text-[#6b1d1d] tracking-tight leading-tight">
@@ -293,20 +282,20 @@ export default function Page() {
 
               <div className="mt-8 flex items-center justify-center gap-2.5 text-xs sm:text-sm font-medium text-[#7c5b52]">
                 <LoaderCircle className="h-4 w-4 animate-spin text-[#6b1d1d]" />
-                <span>{phaseMessages[processingPhase] || "Judge Processing in progress..."}</span>
+                <span>{phaseMessages[processingPhase] || "Case Analysis in progress..."}</span>
               </div>
             </div>
 
-            {/* Bottom Stepper Pills Track */}
+            {/* Bottom Stepper Pills Track (Single Horizontal Line) */}
             <div className="relative z-10 pb-8 sm:pb-12 pt-4 px-4 w-full">
-              <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 max-w-4xl mx-auto">
+              <div className="flex items-center justify-center gap-1.5 sm:gap-3 md:gap-4 max-w-5xl mx-auto flex-wrap sm:flex-nowrap">
                 {phases.map((phase, idx) => {
                   const isCompleted = idx < currentPhase;
                   const isActive = idx === currentPhase;
                   return (
-                    <div key={phase.key} className="flex items-center gap-2 sm:gap-4">
+                    <div key={phase.key} className="flex items-center gap-1.5 sm:gap-3 md:gap-4 shrink-0">
                       <div
-                        className={`px-4 sm:px-6 py-2.5 rounded-lg text-xs sm:text-sm font-bold tracking-wider uppercase transition-all shadow-xs ${
+                        className={`px-3.5 sm:px-5 md:px-6 py-2 sm:py-2.5 rounded-lg text-[11px] sm:text-xs md:text-sm font-bold tracking-wider uppercase transition-all whitespace-nowrap shadow-xs ${
                           isCompleted
                             ? "bg-[#0d8a43] text-white"
                             : isActive
